@@ -11,6 +11,7 @@
 /* system libraries */
 
 /* project includes */
+#include "child_proc.h"
 
 int main() {
     return 0;

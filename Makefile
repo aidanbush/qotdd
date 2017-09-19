@@ -12,9 +12,11 @@ CFLAGS= -Wall -std=c99 -D_POSIX_C_SOURCE=201112L
 
 all: qotdd
 
-qotdd: qotdd.o
+qotdd: qotdd.o child_proc.o
 
-qotdd.o: qotdd.c
+qotdd.o: qotdd.c child_proc.h
+
+child.o_proc: child_proc.c
 
 # add clean for jsmn
 clean:
