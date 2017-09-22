@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <netdb.h>
 #include <errno.h>
+#include <signal.h>
+#include <stdbool.h>
 
 /* system libraries */
 #include <sys/types.h>
@@ -22,12 +24,31 @@
 
 #define EXIT_INVALID_OPT 2
 #define EXIT_SOCKET_FAIL 3
+#define EXIT_SIGINT_FAIL 4
 
 #define SOCKET_RETRY 5
 #define PORT "1042"
 #define BACKLOG 5
 
-int v;
+int v = 0;
+bool exit_server = false;
+
+void inter_handler(int par) {
+    exit_server = true;
+}
+
+int create_sigint_handler() {
+    struct sigaction interrupt = {
+            .sa_handler = &inter_handler
+    };
+
+    int err = sigaction(SIGINT, &interrupt, NULL);
+    if (err == -1) {
+        if (v >= 1) perror("sigaction");
+        return -1;
+    }
+    return 0;
+}
 
 void print_usage(char *p_name) {
     printf("usage : %s [-options] host[:port]/path key\n"
@@ -108,10 +129,15 @@ int server_proc(char *path, char *key) {
     }
 
     // setup signal interupt handler
+    err = create_sigint_handler();
+    if (err == -1) {
+        close(sfd);
+        return(EXIT_SIGINT_FAIL);
+    }
 
     /* This code was taken from the lab 1 example and modified */
     // accept loop
-    while (1) {
+    while (!exit_server) {
         struct sockaddr_storage client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
 
@@ -134,7 +160,6 @@ int server_proc(char *path, char *key) {
 int main(int argc, char **argv) {
     char *path, *key;
     char c;
-    v = 0;
 
     // getopt
     while ((c = getopt(argc, argv, "vh")) != -1) {
