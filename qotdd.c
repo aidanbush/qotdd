@@ -149,9 +149,11 @@ int server_proc(char *path, char *key) {
                 if (v >= 1) perror("accept");
             continue;
         }
+        if (v >= 3) fprintf(stderr, "opened connection cfd:%d\n", cfd);
         // fork here
 
         close(cfd);
+        if (v >= 3) fprintf(stderr, "closed connection cfd:%d\n", cfd);
     }
 
     return 0;
