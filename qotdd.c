@@ -29,18 +29,20 @@
 
 #define SOCKET_RETRY 5
 #define PORT "1042"
-#define BACKLOG 5
+#define BACKLOG 5 // change to variable
 
 int v = 0;
 bool exit_server = false;
 
-void inter_handler(int par) {
+// the function called for the sigint handler stops the main server loop
+void sigint_handler(int par) {
     exit_server = true;
 }
 
+// creates the SIGINT interupt handler
 int create_sigint_handler() {
     struct sigaction interrupt = {
-            .sa_handler = &inter_handler
+            .sa_handler = &sigint_handler
     };
 
     int err = sigaction(SIGINT, &interrupt, NULL);
@@ -51,6 +53,7 @@ int create_sigint_handler() {
     return 0;
 }
 
+// usage printing function takes argv[0] and prints the usage message
 void print_usage(char *p_name) {
     printf("usage : %s [-options] host[:port]/path key\n"
            "Implements quote of the day by forwarding the quote it retrieves\n"
@@ -69,6 +72,7 @@ void print_usage(char *p_name) {
             basename(p_name));
 }
 
+// the main server setup and loop function
 int server_proc(char *path, char *key) {
     struct addrinfo *res, hints = {
         .ai_family = AF_INET,
@@ -161,6 +165,7 @@ int server_proc(char *path, char *key) {
     return 0;
 }
 
+// main function gets options and then calls the server process function
 int main(int argc, char **argv) {
     char *path, *key;
     char c;
