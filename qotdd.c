@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <libgen.h>
 
 /* system libraries */
 #include <sys/types.h>
@@ -64,7 +65,8 @@ void print_usage(char *p_name) {
            "  host  The destination of the server to forward from\n"
            "  port  The specific port to recieve the quote from\n"
            "  path  The path to the quote\n"
-           "  key   The corresponding JSON key for the quote\n", p_name);
+           "  key   The corresponding JSON key for the quote\n",
+            basename(p_name));
 }
 
 int server_proc(char *path, char *key) {
@@ -149,11 +151,11 @@ int server_proc(char *path, char *key) {
                 if (v >= 1) perror("accept");
             continue;
         }
-        if (v >= 3) fprintf(stderr, "opened connection cfd:%d\n", cfd);
+        if (v >= 3) fprintf(stdout, "opened connection cfd:%d\n", cfd);
         // fork here
 
         close(cfd);
-        if (v >= 3) fprintf(stderr, "closed connection cfd:%d\n", cfd);
+        if (v >= 3) fprintf(stdout, "closed connection cfd:%d\n", cfd);
     }
 
     return 0;
