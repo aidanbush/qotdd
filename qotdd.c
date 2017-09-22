@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <netdb.h>
+#include <errno.h>
 
 /* system libraries */
 #include <sys/types.h>
@@ -46,25 +47,26 @@ void print_usage(char *p_name) {
 }
 
 int server_proc(char *path, char *key) {
-    //addrinfo
     struct addrinfo *res, hints = {
         .ai_family = AF_INET,
         .ai_socktype = SOCK_STREAM,
         .ai_flags = AI_PASSIVE | AI_V4MAPPED
+        // add TCP protocol
     };
 
     int err;
     int sfd;
 
-    //for socket retry times
+    /* This Code was taken from the example in lab 1 and modified */
+    // for socket retry times
     for (int i = 0; i < SOCKET_RETRY; i++) {
         err = getaddrinfo(NULL, PORT, &hints, &res);
         if (err != 0)
             continue;
         struct addrinfo *cur;
-        //for all sockets from addrinfo
+        // for all sockets from addrinfo
         for (cur = res; cur != NULL; cur = cur->ai_next) {
-            //create socket
+            // create socket
             sfd = socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
 
             if (sfd == -1) {
@@ -72,7 +74,7 @@ int server_proc(char *path, char *key) {
                 continue;
             }
 
-            //socket options
+            // socket options
             int val = 1;
             err = setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
             if (err == -1) {
@@ -81,7 +83,7 @@ int server_proc(char *path, char *key) {
                 continue;
             }
 
-            //bind
+            // bind
             err = bind(sfd, cur->ai_addr, cur->ai_addrlen);
             if (err == -1) {
                 if (v >= 1) perror("bind");
@@ -89,7 +91,7 @@ int server_proc(char *path, char *key) {
                 continue;
             }
 
-            //listen
+            // listen
             err = listen(sfd, BACKLOG);
             if (err == -1) {
                 if (v >= 1) perror("listen");
@@ -99,13 +101,32 @@ int server_proc(char *path, char *key) {
             break;
         }
 
-        //free addinfo
+        // free addinfo
         freeaddrinfo(res);
 
         if (cur != NULL) break;
     }
 
-    //accept loop
+    // setup signal interupt handler
+
+    /* This code was taken from the lab 1 example and modified */
+    // accept loop
+    while (1) {
+        struct sockaddr_storage client_addr;
+        socklen_t client_addr_len = sizeof(client_addr);
+
+        int cfd = accept(sfd, (struct sockaddr*) &client_addr,
+            &client_addr_len);
+        if (cfd == -1) {
+            // if the error was not caused by an interupt
+            if (errno != EINTR)
+                if (v >= 1) perror("accept");
+            continue;
+        }
+        // fork here
+
+        close(cfd);
+    }
 
     return 0;
 }
@@ -115,7 +136,7 @@ int main(int argc, char **argv) {
     char c;
     v = 0;
 
-    //getopt
+    // getopt
     while ((c = getopt(argc, argv, "vh")) != -1) {
         switch (c) {
             case 'v':
@@ -130,7 +151,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    //get required fields
+    // get required fields
     if (optind == argc -2) {
         path = argv[optind];
         key = argv[optind + 1];
