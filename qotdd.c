@@ -156,7 +156,12 @@ int server_proc(char *path, char *key) {
             continue;
         }
         if (v >= 3) fprintf(stdout, "opened connection cfd:%d\n", cfd);
-        // fork here
+        //fork
+        int pid = fork();
+        //if child call child proc
+        if (pid == 0) {
+            child_proc(cfd);
+        }
 
         close(cfd);
         if (v >= 3) fprintf(stdout, "closed connection cfd:%d\n", cfd);
