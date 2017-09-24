@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <netdb.h>
+#include <string.h>
 
 /* system libraries */
 #include <sys/types.h>
@@ -19,7 +20,7 @@
 /* project includes */
 
 #define TEST_SERVICE "80" // TODO: replace
-#define TEST_HOST "google.ca"
+#define TEST_HOST "date.jsontest.com"
 
 extern int v;
 
@@ -72,6 +73,22 @@ int make_client_socket() {
     return cfd;
 }
 
+//get request to server
+void send_get_req(int qfd) {
+    char *msg = "GET / HTTP/1.1\r\n"
+                "Host: " TEST_HOST ":" TEST_SERVICE "\r\n"
+                "\r\n";
+
+    fprintf(stdout, "sending|%s|\n", msg);
+    
+    int wrttn = send(qfd, msg, strlen(msg), 0);
+    if (wrttn == -1) {
+        if (v >= 3) fprintf(stderr, "send error\n");
+    } else {
+        if (v >= 3) fprintf(stderr, "send successful\n");
+    }
+}
+
 // requests a quote from the server provied earlier
 void request_quote() {
     // make client socket
@@ -84,7 +101,8 @@ void request_quote() {
     }
 
     // test response
-    /*
+    send_get_req(qfd);
+
     int n;
     char buf[1024];
     while ((n = read(qfd, buf, sizeof(buf) - 1)) > 0) {
@@ -94,7 +112,6 @@ void request_quote() {
     if (n < 0) {
         perror("read");
     }
-    */
 
     // send request
 
