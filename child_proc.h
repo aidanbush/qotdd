@@ -9,6 +9,11 @@
 #ifndef CHILD_PROC_H
 #define CHILD_PROC_H
 
-void child(int);
+/* The main child proccess function
+ * Input: cfd = file descriptor for the connection
+ * The function takes the given connection and responds with the quote of the
+ *  day
+*/
+void child_proc(int);
 
 #endif /* CHILD_PROC_H */
