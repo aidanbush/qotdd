@@ -18,8 +18,8 @@
 
 /* project includes */
 
-#define TEST_SERVICE "17" // TODO: replace
-#define TEST_HOST "cygnus-x.net"
+#define TEST_SERVICE "80" // TODO: replace
+#define TEST_HOST "google.ca"
 
 extern int v;
 
@@ -30,9 +30,11 @@ int make_client_socket() {
         .ai_flags = AI_V4MAPPED
     };
 
-    int err = getaddrinfo(NULL, TEST_SERVICE, &hints, &res);
+    if (v >= 1) fprintf(stdout, "creating client socket\n");
+
+    int err = getaddrinfo(TEST_HOST, TEST_SERVICE, &hints, &res);
     if (err != 0) {
-        if (v >= 1) fprintf(stderr, "gai_strerror: %s\n", gai_strerror(err));
+        if (v >= 1) fprintf(stderr, "%s\n", gai_strerror(err));
         exit(1);
     }
 
@@ -60,8 +62,12 @@ int make_client_socket() {
 
     freeaddrinfo(res);
 
-    if (cur == NULL)
+    if (cur == NULL) {
+        fprintf(stdout, "cur == NULL\n");
         cfd = -1;
+    }
+
+    if (v >= 1) fprintf(stdout, "socket and connection created\n");
 
     return cfd;
 }
@@ -78,6 +84,7 @@ void request_quote() {
     }
 
     // test response
+    /*
     int n;
     char buf[1024];
     while ((n = read(qfd, buf, sizeof(buf) - 1)) > 0) {
@@ -87,6 +94,7 @@ void request_quote() {
     if (n < 0) {
         perror("read");
     }
+    */
 
     // send request
 
@@ -107,7 +115,7 @@ void child_proc(int cfd) {
     // forward
 
     close(cfd);
-    if (v >= 3) fprintf(stdout, "closed connection cfd:%d\n", cfd);
+    if (v >= 3) fprintf(stdout, "child closed connection cfd:%d\n", cfd);
 
     exit(0); // kill
 }

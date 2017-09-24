@@ -164,7 +164,7 @@ int server_proc(char *path, char *key) {
         }
 
         close(cfd);
-        if (v >= 3) fprintf(stdout, "closed connection cfd:%d\n", cfd);
+        if (v >= 3) fprintf(stdout, "parent closed connection cfd:%d\n", cfd);
     }
 
     return 0;
