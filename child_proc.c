@@ -18,7 +18,8 @@
 
 /* project includes */
 
-#define TEST_SERVICE "nicksosinski.com:17" // TODO: replace
+#define TEST_SERVICE "17" // TODO: replace
+#define TEST_HOST "cygnus-x.net"
 
 extern int v;
 
@@ -31,25 +32,25 @@ int make_client_socket() {
 
     int err = getaddrinfo(NULL, TEST_SERVICE, &hints, &res);
     if (err != 0) {
-        if (v >= 1) fprintf(stderr, "%s\n", gai_strerror(err));
+        if (v >= 1) fprintf(stderr, "gai_strerror: %s\n", gai_strerror(err));
         exit(1);
     }
 
-    //create socket
+    // create socket
     int cfd;
     struct addrinfo * cur;
     for (cur = res; cur != NULL; cur = cur->ai_next) {
-        //socket
+        // socket
         cfd = socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
         if (cfd < 0) {
             if (v >= 1) perror("socket");
             continue;
         }
 
-        //connect
+        // connect
         err = connect(cfd, cur->ai_addr, cur->ai_addrlen);
         if (err == -1) {
-            if (v >= 1) perror("listen");
+            if (v >= 1) perror("connect");
             close(cfd);
             continue;
         }
@@ -59,6 +60,9 @@ int make_client_socket() {
 
     freeaddrinfo(res);
 
+    if (cur == NULL)
+        cfd = -1;
+
     return cfd;
 }
 
@@ -67,6 +71,22 @@ void request_quote() {
     // make client socket
     int qfd; // quote file descriptor
     qfd = make_client_socket();
+
+    if (qfd == -1) {
+        if (v >= 1) fprintf(stderr, "failed to create socket or connect\n");
+        exit(1);
+    }
+
+    // test response
+    int n;
+    char buf[1024];
+    while ((n = read(qfd, buf, sizeof(buf) - 1)) > 0) {
+        printf("%s", buf);
+    }
+
+    if (n < 0) {
+        perror("read");
+    }
 
     // send request
 
