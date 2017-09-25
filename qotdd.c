@@ -69,7 +69,7 @@ void print_usage(char *p_name) {
            "        vvv adds logging of all traffic\n\n"
            "required options:\n"
            "  host  The destination of the server to forward from\n"
-           "  port  The specific port to recieve the quote from\n"
+           "  port  The specific port, uses 80 if not included\n"
            "  path  The path to the quote\n"
            "  key   The corresponding JSON key for the quote\n",
             basename(p_name));

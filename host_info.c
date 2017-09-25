@@ -17,6 +17,8 @@
 /* project includes */
 #include "host_info.h"
 
+#define DEFAULT_PORT "80"
+
 extern int v;
 
 int check_port(char *path) {
@@ -70,9 +72,9 @@ host_info_struct *parse_host_info(char *path, char *key) {
         host_info->path = strdup("/");
     }
 
-    // if if port in NULL set to 17
+    // if if port in NULL set to the default option
     if (host_info->port == NULL)
-        host_info->port = strdup("17");
+        host_info->port = strdup(DEFAULT_PORT);
 
     // set key
     host_info->key = key;
