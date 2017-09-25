@@ -24,6 +24,7 @@
 #define TEST_HOST "date.jsontest.com"
 
 #define SIZE_OF_GET_MESSAGE 26
+#define RES_BUF_SIZE 1024
 
 extern int v;
 
@@ -68,10 +69,10 @@ int make_client_socket(host_info_struct *info) {
 
     if (cur == NULL) {
         fprintf(stdout, "cur == NULL\n");
-        cfd = -1;
+        return -1;
     }
 
-    if (v >= 1) fprintf(stdout, "socket and connection created\n");
+    if (v >= 1) fprintf(stdout, "client socket and connection created\n");
 
     return cfd;
 }
@@ -94,13 +95,31 @@ int send_get_req(int qfd, host_info_struct *info) {
         return -1;
     }
 
-    //fprintf(stdout, "sending|%s|\n", msg);
-    
     int wrttn = send(qfd, msg, strlen(msg), 0);
     if (wrttn == -1) {
-        if (v >= 3) fprintf(stderr, "send error\n");
+        if (v >= 3) fprintf(stderr, "client send error\n");
     } else {
-        if (v >= 3) fprintf(stderr, "send successful\n");
+        if (v >= 3) fprintf(stderr, "client send successful\n");
+    }
+    return 1;
+}
+
+int add_to_response(char *buf, char **res) {
+    if (*res == NULL){
+        *res = calloc(RES_BUF_SIZE, sizeof(char));
+        if (*res == NULL) return -1;
+
+        strncpy(*res, buf, strlen(buf));
+    } else {
+        int res_len = strlen(*res);
+        char *temp_ptr = calloc(strlen(*res) + strlen(buf), sizeof(char));
+        if (temp_ptr == NULL) return -1;
+
+        strncpy(temp_ptr, *res, res_len); // copy over res
+        strncpy(&temp_ptr[res_len], buf, strlen(buf));// copy over buf
+
+        free(*res);// free res
+        *res = temp_ptr;// set res
     }
     return 1;
 }
@@ -125,24 +144,23 @@ char* request_quote(host_info_struct *info) {
         return NULL;
 
     int n;
-    char buf[1024];
-    //char *res = NULL;
-    //int res_len = 0;
+    char buf[RES_BUF_SIZE];
+    memset(&buf, 0, RES_BUF_SIZE);
+    char *res = NULL;
 
     // fails on read does not stop (does not read nothing and stop???)
-    while ((n = read(qfd, buf, sizeof(buf) - 1)) > 0) {
-        fprintf(stdout, "%s", buf);
-        //res = realloc(res, sizeof(char) * (n + 1)); // realloc
-        //copy over
-        //strncpy(&res[res_len], buf, n);
-        //res_len = strlen(res); // fails here
+    while ((n = read(qfd, buf, sizeof(buf) - 1)) >= 0) {
+        buf[n] = '\0';
+        add_to_response(buf, &res);
+        if (n < RES_BUF_SIZE - 1)
+            break;
     }
 
-    //fprintf(stdout, "res:%s", res);
+    fprintf(stdout, "printing res\n");
+    fprintf(stdout, "res:%s", res);
 
-    if (n < 0) {
-        perror("read");
-    }
+    if (n < 0)
+        if (v >= 1) perror("read");
 
     // send request
 
@@ -161,8 +179,10 @@ void child_proc(int cfd, host_info_struct *info) {
     // make request to server
     quote = request_quote(info);
 
-    if (quote == NULL)
+    if (quote == NULL) {
+        if (V >= 1) fprintf(stderr, "unable to get quote\n");
         exit(1);
+    }
     
 
     // parse
