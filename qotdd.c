@@ -22,10 +22,12 @@
 
 /* project includes */
 #include "child_proc.h"
+#include "host_info.h"
 
 #define EXIT_INVALID_OPT 2
 #define EXIT_SOCKET_FAIL 3
 #define EXIT_SIGINT_FAIL 4
+#define EXIT_OTHER_FAIL 5
 
 #define SOCKET_RETRY 5
 #define PORT "1042"
@@ -73,7 +75,7 @@ void print_usage(char *p_name) {
 }
 
 // the main server setup and loop function
-int server_proc(char *path, char *key) {
+int server_proc(host_info_struct *info) {
     struct addrinfo *res, hints = {
         .ai_family = AF_INET,
         .ai_socktype = SOCK_STREAM,
@@ -160,7 +162,7 @@ int server_proc(char *path, char *key) {
         int pid = fork();
         //if child call child proc
         if (pid == 0) {
-            child_proc(cfd);
+            child_proc(cfd, info);
         }
 
         close(cfd);
@@ -199,5 +201,16 @@ int main(int argc, char **argv) {
         exit(EXIT_INVALID_OPT);
     }
 
-    return server_proc(path, key);
+    host_info_struct * info = parse_host_info(path, key);
+
+    if (info == NULL) {
+        print_usage(argv[0]);
+        exit(EXIT_OTHER_FAIL);
+    }
+
+    int serv_exit = server_proc(info);
+
+    clean_host_info(info);
+
+    return serv_exit;
 }

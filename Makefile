@@ -6,17 +6,19 @@
 # Description: it's a Makefile
 
 CC=gcc
-CFLAGS= -Wall -std=c99 -D_POSIX_C_SOURCE=201112L
+CFLAGS= -Wall -std=c99 -D_POSIX_C_SOURCE=201112L -g
 
 .PHONEY: all clean
 
 all: qotdd
 
-qotdd: qotdd.o child_proc.o
+qotdd: qotdd.o child_proc.o host_info.o
 
-qotdd.o: qotdd.c child_proc.h
+qotdd.o: qotdd.c child_proc.h host_info.h
 
-child.o_proc: child_proc.c
+child_proc.o: child_proc.c
+
+host_info.o: host_info.c host_info.h
 
 # add clean for jsmn
 clean:

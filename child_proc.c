@@ -18,13 +18,16 @@
 #include <sys/socket.h>
 
 /* project includes */
+#include "host_info.h"
 
 #define TEST_SERVICE "80" // TODO: replace
 #define TEST_HOST "date.jsontest.com"
 
+#define SIZE_OF_GET_MESSAGE 26
+
 extern int v;
 
-int make_client_socket() {
+int make_client_socket(host_info_struct *info) {
     struct addrinfo *res, hints = {
         .ai_family = AF_INET,
         .ai_socktype = SOCK_STREAM,
@@ -33,7 +36,7 @@ int make_client_socket() {
 
     if (v >= 1) fprintf(stdout, "creating client socket\n");
 
-    int err = getaddrinfo(TEST_HOST, TEST_SERVICE, &hints, &res);
+    int err = getaddrinfo(info->host, info->port, &hints, &res);
     if (err != 0) {
         if (v >= 1) fprintf(stderr, "%s\n", gai_strerror(err));
         exit(1);
@@ -74,12 +77,24 @@ int make_client_socket() {
 }
 
 //get request to server
-void send_get_req(int qfd) {
-    char *msg = "GET / HTTP/1.1\r\n"
-                "Host: " TEST_HOST ":" TEST_SERVICE "\r\n"
-                "\r\n";
+int send_get_req(int qfd, host_info_struct *info) {
+    char *msg = malloc(sizeof(char) *
+            ((SIZE_OF_GET_MESSAGE) + strlen(info->path) + strlen(info->host)
+             + strlen(info->port) + 1));
 
-    fprintf(stdout, "sending|%s|\n", msg);
+    // create message to be sent
+    int err = sprintf(msg, "GET %s HTTP/1.1\r\n"
+                "Host: %s:%s\r\n"
+                "\r\n",
+                info->path, info->host, info->port);
+
+    if (err < 0) {
+        if (v >= 1) fprintf(stderr, "unable to send message due to sprintf "
+                                    "error\n");
+        return -1;
+    }
+
+    //fprintf(stdout, "sending|%s|\n", msg);
     
     int wrttn = send(qfd, msg, strlen(msg), 0);
     if (wrttn == -1) {
@@ -87,13 +102,16 @@ void send_get_req(int qfd) {
     } else {
         if (v >= 3) fprintf(stderr, "send successful\n");
     }
+    return 1;
 }
 
 // requests a quote from the server provied earlier
-void request_quote() {
+char* request_quote(host_info_struct *info) {
+    char *quote = NULL;
+
     // make client socket
     int qfd; // quote file descriptor
-    qfd = make_client_socket();
+    qfd = make_client_socket(info);
 
     if (qfd == -1) {
         if (v >= 1) fprintf(stderr, "failed to create socket or connect\n");
@@ -101,13 +119,26 @@ void request_quote() {
     }
 
     // test response
-    send_get_req(qfd);
+    int err = send_get_req(qfd, info);
+
+    if (err == -1)
+        return NULL;
 
     int n;
     char buf[1024];
+    //char *res = NULL;
+    //int res_len = 0;
+
+    // fails on read does not stop (does not read nothing and stop???)
     while ((n = read(qfd, buf, sizeof(buf) - 1)) > 0) {
-        printf("%s", buf);
+        fprintf(stdout, "%s", buf);
+        //res = realloc(res, sizeof(char) * (n + 1)); // realloc
+        //copy over
+        //strncpy(&res[res_len], buf, n);
+        //res_len = strlen(res); // fails here
     }
+
+    //fprintf(stdout, "res:%s", res);
 
     if (n < 0) {
         perror("read");
@@ -120,12 +151,19 @@ void request_quote() {
     close(qfd);
 
     // return quote
+    return quote;
 }
 
 // main child process makes requests and responds to the connecting client
-void child_proc(int cfd) {
+void child_proc(int cfd, host_info_struct *info) {
+    char *quote;
+
     // make request to server
-    request_quote();
+    quote = request_quote(info);
+
+    if (quote == NULL)
+        exit(1);
+    
 
     // parse
 

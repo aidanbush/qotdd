@@ -9,11 +9,13 @@
 #ifndef CHILD_PROC_H
 #define CHILD_PROC_H
 
+#include "host_info.h"
+
 /* The main child proccess function
  * Input: cfd = file descriptor for the connection
  * The function takes the given connection and responds with the quote of the
  *  day
 */
-void child_proc(int);
+void child_proc(int, host_info_struct *);
 
 #endif /* CHILD_PROC_H */
