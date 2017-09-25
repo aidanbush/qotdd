@@ -85,6 +85,7 @@ int send_get_req(int qfd, host_info_struct *info) {
 
     // create message to be sent
     int err = sprintf(msg, "GET %s HTTP/1.1\r\n"
+                // TODO properly build "HOST" ":" host [ ":" port]
                 "Host: %s:%s\r\n"
                 "\r\n",
                 info->path, info->host, info->port);
@@ -104,6 +105,21 @@ int send_get_req(int qfd, host_info_struct *info) {
     return 1;
 }
 
+char *body_start(char *res) {
+    for (int i = 0; i < strlen(res); i++) {
+        if (res[i] == '\r')
+            if (strncmp(&res[i], "\r\n\r\n", 4) == 0)
+                return &res[i+4];
+    }
+    return NULL;
+}
+
+char *parse_quote(char *res) {
+    char *start = body_start(res);
+    fprintf(stderr, "%s", start);
+    return NULL;
+}
+
 int add_to_response(char *buf, char **res) {
     if (*res == NULL){
         *res = calloc(RES_BUF_SIZE, sizeof(char));
@@ -118,8 +134,8 @@ int add_to_response(char *buf, char **res) {
         strncpy(temp_ptr, *res, res_len); // copy over res
         strncpy(&temp_ptr[res_len], buf, strlen(buf));// copy over buf
 
-        free(*res);// free res
-        *res = temp_ptr;// set res
+        free(*res); // free res
+        *res = temp_ptr; // set res
     }
     return 1;
 }
@@ -139,32 +155,27 @@ char* request_quote(host_info_struct *info) {
 
     // test response
     int err = send_get_req(qfd, info);
-
-    if (err == -1)
+    if (err == -1) {
+        close(qfd);
         return NULL;
+    }
 
     int n;
     char buf[RES_BUF_SIZE];
     memset(&buf, 0, RES_BUF_SIZE);
     char *res = NULL;
-
-    // fails on read does not stop (does not read nothing and stop???)
-    while ((n = read(qfd, buf, sizeof(buf) - 1)) >= 0) {
+    while ((n = read(qfd, buf, sizeof(buf) - 1)) > 0) {
         buf[n] = '\0';
         add_to_response(buf, &res);
         if (n < RES_BUF_SIZE - 1)
             break;
     }
 
-    fprintf(stdout, "printing res\n");
-    fprintf(stdout, "res:%s", res);
-
     if (n < 0)
         if (v >= 1) perror("read");
 
-    // send request
-
     // parse quote
+    quote = parse_quote(res);
 
     close(qfd);
 
@@ -180,7 +191,8 @@ void child_proc(int cfd, host_info_struct *info) {
     quote = request_quote(info);
 
     if (quote == NULL) {
-        if (V >= 1) fprintf(stderr, "unable to get quote\n");
+        if (v >= 1) fprintf(stderr, "unable to get quote\n");
+        close(cfd);
         exit(1);
     }
     
