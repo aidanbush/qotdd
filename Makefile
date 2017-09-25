@@ -20,6 +20,10 @@ child_proc.o: child_proc.c
 
 host_info.o: host_info.c host_info.h
 
+jsmn/jsmn.o:
+	make -C jsmn
+
 # add clean for jsmn
 clean:
 	$(RM) qotdd *.o
+	make -C jsmn clean
