@@ -55,14 +55,20 @@ host_info_struct *parse_host_info(char *path, char *key) {
             host_info->port = strdup(str[1]);
         else
             host_info->port = NULL;
-        if (str[2] != NULL)
-            host_info->path = strdup(str[2]);
+        if (str[2] != NULL){
+            host_info->path = malloc(sizeof(char) * (strlen(str[2]) + 2));
+            if (host_info->path != NULL)
+                sprintf(host_info->path, "/%s", str[2]);
+        }
         else
             host_info->path = NULL;
     } else {
         host_info->port = NULL;
-        if (str[1] != NULL)
-            host_info->path = strdup(str[1]);
+        if (str[1] != NULL) {
+            host_info->path = malloc(sizeof(char) * (strlen(str[1]) + 2));
+                if (host_info->path != NULL)
+            sprintf(host_info->path, "/%s",str[1]);
+        }
         else
             host_info->path = NULL;
     }
