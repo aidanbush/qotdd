@@ -30,7 +30,6 @@
 #define EXIT_SOCK_SETUP_FAIL 5
 #define EXIT_OTHER_FAIL 6
 
-#define SOCKET_RETRY 5
 #define PORT "1042"
 #define BACKLOG 5 // change to variable
 
@@ -86,61 +85,55 @@ int server_proc(host_info_struct *info) {
 
     int err;
     int sfd;
-    int sock_succ = -1;
 
     /* This Code was taken from the example in lab 1 and modified */
-    // for socket retry times
-    for (int i = 0; i < SOCKET_RETRY; i++) {
-        err = getaddrinfo(NULL, PORT, &hints, &res);
-        if (err != 0)
+    err = getaddrinfo(NULL, PORT, &hints, &res);
+    if (err != 0) {
+        if (v >= 1) fprintf(stderr, "gai_err %s\n", gai_strerror(err));
+        return EXIT_SOCK_SETUP_FAIL;
+    }
+
+    struct addrinfo *cur;
+    // for all sockets from addrinfo
+    for (cur = res; cur != NULL; cur = cur->ai_next) {
+        // create socket
+        sfd = socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
+        if (sfd == -1) {
+            if (v >= 1) perror("socket");
             continue;
-        struct addrinfo *cur;
-        // for all sockets from addrinfo
-        for (cur = res; cur != NULL; cur = cur->ai_next) {
-            // create socket
-            sfd = socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
-            if (sfd == -1) {
-                if (v >= 1) perror("socket");
-                continue;
-            }
-
-            // socket options
-            int val = 1;
-            err = setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
-            if (err == -1) {
-                if (v >= 1) perror("setsockopt");
-                close(sfd);
-                continue;
-            }
-
-            // bind
-            err = bind(sfd, cur->ai_addr, cur->ai_addrlen);
-            if (err == -1) {
-                if (v >= 1) perror("bind");
-                close(sfd);
-                continue;
-            }
-
-            // listen
-            err = listen(sfd, BACKLOG);
-            if (err == -1) {
-                if (v >= 1) perror("listen");
-                close(sfd);
-                continue;
-            }
-            break;
         }
 
-        // free addinfo
-        freeaddrinfo(res);
+        // socket options
+        int val = 1;
+        err = setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
+        if (err == -1) {
+            if (v >= 1) perror("setsockopt");
+            close(sfd);
+            continue;
+        }
 
-        if (cur != NULL) {
-            sock_succ = 1;
-            break;
+        // bind
+        err = bind(sfd, cur->ai_addr, cur->ai_addrlen);
+        if (err == -1) {
+            if (v >= 1) perror("bind");
+            close(sfd);
+            continue;
+        }
+
+        // listen
+        err = listen(sfd, BACKLOG);
+        if (err == -1) {
+            if (v >= 1) perror("listen");
+            close(sfd);
+            continue;
         }
     }
 
-    if (sock_succ == -1) {
+    // free addinfo
+    freeaddrinfo(res);
+
+    if (cur != NULL) {
+        if (v >= 1) fprintf(stderr, "getaddrinfo fail to connect\n");
         close(sfd);
         return EXIT_SOCK_SETUP_FAIL;
     }
