@@ -19,6 +19,7 @@
 /* system libraries */
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 
 /* project includes */
 #include "child_proc.h"
@@ -27,8 +28,9 @@
 #define EXIT_INVALID_OPT 2
 #define EXIT_SOCKET_FAIL 3
 #define EXIT_SIGINT_FAIL 4
-#define EXIT_SOCK_SETUP_FAIL 5
-#define EXIT_OTHER_FAIL 6
+#define EXIT_SIGCHLD_FAIL 5
+#define EXIT_SOCK_SETUP_FAIL 6
+#define EXIT_OTHER_FAIL 7
 
 #define PORT "1042"
 #define BACKLOG 5 // change to variable
@@ -48,6 +50,26 @@ int create_sigint_handler() {
     };
 
     int err = sigaction(SIGINT, &interrupt, NULL);
+    if (err == -1) {
+        if (v >= 1) perror("sigaction");
+        return -1;
+    }
+    return 0;
+}
+
+//the SIGCHLD handler
+void sigchld_handler(int par) {
+    fprintf(stderr, "sigchld called\n");
+    waitpid(-1, NULL, WNOHANG);
+}
+
+// creates the SIGCHLD interupt handler
+int create_sigchld_handler() {
+    struct sigaction interupt = {
+        .sa_handler = &sigchld_handler
+    };
+
+    int err = sigaction(SIGCHLD, &interupt, NULL);
     if (err == -1) {
         if (v >= 1) perror("sigaction");
         return -1;
@@ -143,6 +165,12 @@ int server_proc(host_info_struct *info) {
     if (err == -1) {
         close(sfd);
         return(EXIT_SIGINT_FAIL);
+    }
+
+    err = create_sigchld_handler();
+    if (err == -1) {
+        close(sfd);
+        return(EXIT_SIGCHLD_FAIL);
     }
 
     /* This code was taken from the lab 1 example and modified */

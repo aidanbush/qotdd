@@ -26,8 +26,6 @@
 #define SIZE_OF_ERR_MSG 21
 #define RES_BUF_SIZE 1024
 
-#define NUM_TOKS 128
-
 extern int v;
 
 int make_client_socket(host_info_struct *info) {
@@ -36,8 +34,6 @@ int make_client_socket(host_info_struct *info) {
         .ai_socktype = SOCK_STREAM,
         .ai_flags = AI_V4MAPPED
     };
-
-    if (v >= 1) fprintf(stdout, "creating client socket\n");
 
     int err = getaddrinfo(info->host, info->port, &hints, &res);
     if (err != 0) {
@@ -74,8 +70,6 @@ int make_client_socket(host_info_struct *info) {
         return -1;
     }
 
-    if (v >= 1) fprintf(stdout, "client socket and connection created\n");
-
     return cfd;
 }
 
@@ -99,7 +93,7 @@ int send_get_req(int qfd, host_info_struct *info) {
         return -1;
     }
 
-    if (v >= 3) fprintf(stdout, "send msg: |%s|\n", msg);
+    if (v >= 3) fprintf(stdout, "send msg: %s\n", msg);
 
     int wrttn = send(qfd, msg, strlen(msg), 0);
     if (wrttn == -1) {
@@ -107,6 +101,7 @@ int send_get_req(int qfd, host_info_struct *info) {
     } else {
         if (v >= 3) fprintf(stderr, "client send successful\n");
     }
+    free(msg);
     return 1;
 }
 
@@ -268,6 +263,8 @@ char* request_quote(host_info_struct *info) {
 
     close(qfd);
 
+    free(res);
+
     // return quote
     return quote;
 }
@@ -287,7 +284,8 @@ void child_proc(int cfd, host_info_struct *info) {
     quote = request_quote(info);
 
     if (quote == NULL) {
-        if (v >= 1) fprintf(stderr, "unable to get quote\n");
+        if (v >= 1) fprintf(stderr, "unable to get quote, and an error code "
+                                    "was not sent\n");
         close(cfd);
         exit(1);
     }
