@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <netdb.h>
 #include <string.h>
+#include <ctype.h>
 
 /* system libraries */
 #include <sys/types.h>
@@ -21,7 +22,8 @@
 #include "host_info.h"
 #include "jsmn/jsmn.h"
 
-#define SIZE_OF_GET_MESSAGE 26
+#define SIZE_OF_GET_MSG 26
+#define SIZE_OF_ERR_MSG 21
 #define RES_BUF_SIZE 1024
 
 #define NUM_TOKS 128
@@ -80,7 +82,7 @@ int make_client_socket(host_info_struct *info) {
 //get request to server
 int send_get_req(int qfd, host_info_struct *info) {
     char *msg = malloc(sizeof(char) *
-            ((SIZE_OF_GET_MESSAGE) + strlen(info->path) + strlen(info->host)
+            ((SIZE_OF_GET_MSG) + strlen(info->path) + strlen(info->host)
              + strlen(info->port) + 1));
 
     // create message to be sent
@@ -90,13 +92,14 @@ int send_get_req(int qfd, host_info_struct *info) {
                 "\r\n",
                 info->path, info->host, info->port);
 
-    if (v >= 3) fprintf(stdout, "send msg: |%s|\n", msg);
-
     if (err < 0) {
         if (v >= 1) fprintf(stderr, "unable to send message due to sprintf "
                                     "error\n");
+        free(msg);
         return -1;
     }
+
+    if (v >= 3) fprintf(stdout, "send msg: |%s|\n", msg);
 
     int wrttn = send(qfd, msg, strlen(msg), 0);
     if (wrttn == -1) {
@@ -116,22 +119,30 @@ char *body_start(char *res) {
     return NULL;
 }
 
-int json_strcmp(char *json, jsmntok_t *tok, char *key) { 
+int json_strcmp(char *json, jsmntok_t *tok, char *key) {
     if (tok->type == JSMN_STRING && strlen(key) == tok->end - tok->start)
         return strncmp(json + tok->start, key, tok->end - tok->start);
     return -1;
-} 
+}
+
+int jsmn_num_toks(char *json) {
+    jsmn_parser p;
+    jsmn_init(&p);
+    return jsmn_parse(&p, json, strlen(json), NULL, 0);
+}
 
 char *parse_quote(char *res, char *key) {
     char *start = body_start(res);
 
+    int num_toks = jsmn_num_toks(res);
+
     int c;
     jsmn_parser p;
-    jsmntok_t t[NUM_TOKS];
+    jsmntok_t t[num_toks];
 
     jsmn_init(&p);
 
-    c = jsmn_parse(&p, start, strlen(start), t, NUM_TOKS);
+    c = jsmn_parse(&p, start, strlen(start), t, num_toks);
 
     if (c < 0)
         return NULL;
@@ -167,6 +178,47 @@ int add_to_response(char *buf, char **res) {
     return 1;
 }
 
+char *create_err_msg(int code) {
+    char *msg = malloc(SIZE_OF_ERR_MSG + 3 + 1);
+    int err = sprintf(msg, "cannot obtain quote: %d", code);//
+    if (err < 0) {
+        free(msg);
+        return NULL;
+    }
+    return msg;
+}
+
+char *check_req_code(char *res) {
+    int j, i = 0;
+    // get to begining of code
+    for (; i < strlen(res); i++)
+        if (res[i] == ' ') break;
+    i++;
+    j = i;
+    // get end space
+    for (; j < strlen(res); j++)
+        if (res[j] == ' ') break;
+
+    char code_cpy[4];
+
+    // check if number else return null for error to be caught elsewhere
+    for (int k = i; k < strlen(res) && k - i < 3; k++) {
+        code_cpy[k - i] = res[k];
+        if (isdigit(res[k]) == 0) return NULL;
+    }
+    code_cpy[3] = '\0';
+
+    // convert
+    int code = atoi(code_cpy);
+
+    // if success
+    if (code >= 200 && code < 300)
+        return NULL;
+
+    fprintf(stderr, "create err msg\n");
+    return create_err_msg(code);
+}
+
 // requests a quote from the server provied earlier
 char* request_quote(host_info_struct *info) {
     char *quote = NULL;
@@ -180,7 +232,7 @@ char* request_quote(host_info_struct *info) {
         exit(1);
     }
 
-    // test response
+    // send get request
     int err = send_get_req(qfd, info);
     if (err == -1) {
         close(qfd);
@@ -200,13 +252,19 @@ char* request_quote(host_info_struct *info) {
     if (n < 0)
         if (v >= 1) perror("read");
 
+    if (v >= 3) fprintf(stdout, "res: %s\n", res);
+
     if (res == NULL) {
         if (v >= 1) fprintf(stderr, "unable to get response\n");
         return NULL;
     }
 
-    // parse quote
-    quote = parse_quote(res, info->key);
+    // check res code
+    quote = check_req_code(res);
+
+    // parse quote if an error msg has not been made
+    if (quote == NULL)
+        quote = parse_quote(res, info->key);
 
     close(qfd);
 
@@ -233,7 +291,7 @@ void child_proc(int cfd, host_info_struct *info) {
         close(cfd);
         exit(1);
     }
-    
+
     // forward
     write_quote(quote, cfd);
 
