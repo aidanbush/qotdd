@@ -99,10 +99,9 @@ void print_usage(char *p_name) {
 // the main server setup and loop function
 int server_proc(host_info_struct *info) {
     struct addrinfo *res, hints = {
-        .ai_family = AF_INET,
+        .ai_family = AF_INET6,
         .ai_socktype = SOCK_STREAM,
         .ai_flags = AI_PASSIVE | AI_V4MAPPED
-        // add TCP protocol
     };
 
     int err;
@@ -198,6 +197,11 @@ int server_proc(host_info_struct *info) {
         close(cfd);
         if (v >= 3) fprintf(stdout, "parent closed connection cfd:%d\n", cfd);
     }
+
+    //if children
+        //waitpid(-1, NULL, 0);
+
+    close(sfd);
 
     return 0;
 }
