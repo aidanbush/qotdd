@@ -11,7 +11,7 @@
 
 #include "host_info.h"
 
-/* The main child proccess function
+/* The main child process function
  * Input: cfd = file descriptor for the connection
  * The function takes the given connection and responds with the quote of the
  *  day

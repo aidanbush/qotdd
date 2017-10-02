@@ -3,7 +3,7 @@
  * Course: CMPT 361
  * Date: Sept. 24, 17
  * File: host_info.c
- * Description: file used to break appart, and store the host, port, path, and
+ * Description: file used to break apart, and store the host, port, path, and
  *  key, given.
  */
 
@@ -29,7 +29,7 @@ int check_port(char *path) {
     return 0;
 }
 
-// parses and retuns a host_info struct pointer
+// parses and returns a host_info struct pointer
 host_info_struct *parse_host_info(char *path, char *key) {
     host_info_struct *host_info = malloc(sizeof(host_info_struct));
 

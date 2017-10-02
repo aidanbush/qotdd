@@ -185,7 +185,7 @@ char *create_err_msg(int code) {
 
 char *check_req_code(char *res) {
     int j, i = 0;
-    // get to begining of code
+    // get to beginning of code
     for (; i < strlen(res); i++)
         if (res[i] == ' ') break;
     i++;
@@ -194,17 +194,17 @@ char *check_req_code(char *res) {
     for (; j < strlen(res); j++)
         if (res[j] == ' ') break;
 
-    char code_cpy[4];
+    char code_copy[4];
 
     // check if number else return null for error to be caught elsewhere
     for (int k = i; k < strlen(res) && k - i < 3; k++) {
-        code_cpy[k - i] = res[k];
+        code_copy[k - i] = res[k];
         if (isdigit(res[k]) == 0) return NULL;
     }
-    code_cpy[3] = '\0';
+    code_copy[3] = '\0';
 
     // convert
-    int code = atoi(code_cpy);
+    int code = atoi(code_copy);
 
     // if success
     if (code >= 200 && code < 300)
@@ -214,7 +214,7 @@ char *check_req_code(char *res) {
     return create_err_msg(code);
 }
 
-// requests a quote from the server provied earlier
+// requests a quote from the server provided earlier
 char* request_quote(host_info_struct *info) {
     char *quote = NULL;
 
