@@ -43,7 +43,7 @@ void sigint_handler(int par) {
     exit_server = true;
 }
 
-// creates the SIGINT interupt handler
+// creates the SIGINT interrupt handler
 int create_sigint_handler() {
     struct sigaction interrupt = {
             .sa_handler = &sigint_handler
@@ -63,13 +63,13 @@ void sigchld_handler(int par) {
     waitpid(-1, NULL, WNOHANG);
 }
 
-// creates the SIGCHLD interupt handler
+// creates the SIGCHLD interrupt handler
 int create_sigchld_handler() {
-    struct sigaction interupt = {
+    struct sigaction interrupt = {
         .sa_handler = &sigchld_handler
     };
 
-    int err = sigaction(SIGCHLD, &interupt, NULL);
+    int err = sigaction(SIGCHLD, &interrupt, NULL);
     if (err == -1) {
         if (v >= 1) perror("sigaction");
         return -1;
@@ -85,7 +85,7 @@ void print_usage(char *p_name) {
            "Options:\n"
            "    -h  Displays this help message and exit\n"
            "    -v  Verbose [use more than once more for move verbose]\n"
-           "        v give basic debuging including errors\n"
+           "        v give basic debugging including errors\n"
            "        vv adds logging of incoming and outgoing messages\n"
            "        vvv adds logging of all traffic\n\n"
            "required options:\n"
@@ -96,13 +96,12 @@ void print_usage(char *p_name) {
             basename(p_name));
 }
 
-// the main server setup and loop function
-int server_proc(host_info_struct *info) {
+// creates the server socket and returns its file descriptor on error returns -1
+int make_server_socket(host_info_struct *info) {
     struct addrinfo *res, hints = {
-        .ai_family = AF_INET,
+        .ai_family = AF_INET6,
         .ai_socktype = SOCK_STREAM,
         .ai_flags = AI_PASSIVE | AI_V4MAPPED
-        // add TCP protocol
     };
 
     int err;
@@ -112,9 +111,8 @@ int server_proc(host_info_struct *info) {
     err = getaddrinfo(NULL, PORT, &hints, &res);
     if (err != 0) {
         if (v >= 1) fprintf(stderr, "gai_err %s\n", gai_strerror(err));
-        return EXIT_SOCK_SETUP_FAIL;
+        return -1;
     }
-
     struct addrinfo *cur;
     // for all sockets from addrinfo
     for (cur = res; cur != NULL; cur = cur->ai_next) {
@@ -155,12 +153,23 @@ int server_proc(host_info_struct *info) {
     freeaddrinfo(res);
 
     if (cur != NULL) {
-        if (v >= 1) fprintf(stderr, "getaddrinfo fail to connect\n");
+        if (v >= 1) fprintf(stderr, "failed to connect\n");
         close(sfd);
+        return -1;
+    }
+    return sfd;
+}
+
+// the main server setup and loop function
+int server_proc(host_info_struct *info) {
+    int sfd, err;
+
+    sfd = make_server_socket(info);
+    if (sfd == -1) {
         return EXIT_SOCK_SETUP_FAIL;
     }
 
-    // setup signal interupt handler
+    // setup signal interrupt handler
     err = create_sigint_handler();
     if (err == -1) {
         close(sfd);
@@ -198,6 +207,8 @@ int server_proc(host_info_struct *info) {
         close(cfd);
         if (v >= 3) fprintf(stdout, "parent closed connection cfd:%d\n", cfd);
     }
+
+    close(sfd);
 
     return 0;
 }
