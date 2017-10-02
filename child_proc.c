@@ -75,13 +75,15 @@ int make_client_socket(host_info_struct *info) {
 
 //get request to server
 int send_get_req(int qfd, host_info_struct *info) {
-    char *msg = malloc(sizeof(char) *
-            ((SIZE_OF_GET_MSG) + strlen(info->path) + strlen(info->host)
-             + strlen(info->port) + 1));
-
     // create message to be sent
+    int msg_len = snprintf(NULL, 0, "GET %s HTTP/1.1\r\n"
+                "Host: %s:%s\r\n"
+                "\r\n",
+                info->path, info->host, info->port);
+
+    char *msg = malloc(sizeof(char) * (msg_len + 1 ));
+
     int err = sprintf(msg, "GET %s HTTP/1.1\r\n"
-                // TODO properly build "HOST" ":" host [ ":" port]
                 "Host: %s:%s\r\n"
                 "\r\n",
                 info->path, info->host, info->port);
