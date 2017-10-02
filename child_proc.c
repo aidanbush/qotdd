@@ -190,13 +190,14 @@ char *create_err_msg(int code) {
 
     int err = sprintf(msg, "cannot obtain quote: %d", code);
     if (err < 0) {
+        if (v >= 1) perror("sprintf");
         free(msg);
-        return NULL; // TODO: deal with return value
+        return NULL;
     }
     return msg;
 }
 
-char *check_req_code(char *res) {
+int check_req_code(char *res, char **quote) {
     int j, i = 0;
     // get to beginning of code
     for (; i < strlen(res); i++)
@@ -209,10 +210,10 @@ char *check_req_code(char *res) {
 
     char code_copy[4];
 
-    // check if number else return null for error to be caught elsewhere
+    // check if number else return -1 for error to be dealt with later
     for (int k = i; k < strlen(res) && k - i < 3; k++) {
         code_copy[k - i] = res[k];
-        if (isdigit(res[k]) == 0) return NULL;
+        if (isdigit(res[k]) == 0) return -1;
     }
     code_copy[3] = '\0';
 
@@ -221,14 +222,16 @@ char *check_req_code(char *res) {
 
     // if success
     if (code >= 200 && code < 300)
-        return NULL;
+        return 1;
 
-    fprintf(stderr, "create err msg\n");
-    return create_err_msg(code);
+    *quote = create_err_msg(code);
+    if (quote == NULL)
+        return -1;
+    return 1;
 }
 
 // requests a quote from the server provided earlier
-char* request_quote(host_info_struct *info) {
+char *request_quote(host_info_struct *info) {
     char *quote = NULL;
 
     // make client socket
@@ -268,10 +271,10 @@ char* request_quote(host_info_struct *info) {
     }
 
     // check res code
-    quote = check_req_code(res);
+    err = check_req_code(res, &quote);
 
     // parse quote if an error msg has not been made
-    if (quote == NULL)
+    if (quote == NULL && err != -1)
         quote = parse_quote(res, info->key);
 
     close(qfd);
