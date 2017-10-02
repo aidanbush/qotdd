@@ -81,7 +81,11 @@ int send_get_req(int qfd, host_info_struct *info) {
                 "\r\n",
                 info->path, info->host, info->port);
 
-    char *msg = malloc(sizeof(char) * (msg_len + 1 ));
+    char *msg = malloc(sizeof(char) * msg_len);
+    if (msg == NULL) {
+        if (v >= 1) perror("malloc");
+        return -1;
+    }
 
     int err = sprintf(msg, "GET %s HTTP/1.1\r\n"
                 "Host: %s:%s\r\n"
@@ -176,11 +180,18 @@ int add_to_response(char *buf, char **res) {
 }
 
 char *create_err_msg(int code) {
-    char *msg = malloc(SIZE_OF_ERR_MSG + 3 + 1);
-    int err = sprintf(msg, "cannot obtain quote: %d", code);//
+    int msg_len = snprintf(NULL, 0, "cannot obtain quote: %d", code);
+
+    char *msg = malloc(sizeof(char) * msg_len);
+    if (msg == NULL) {
+        if (v >= 1) perror("malloc");
+        return NULL;
+    }
+
+    int err = sprintf(msg, "cannot obtain quote: %d", code);
     if (err < 0) {
         free(msg);
-        return NULL;
+        return NULL; // TODO: deal with return value
     }
     return msg;
 }
