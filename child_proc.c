@@ -22,8 +22,6 @@
 #include "host_info.h"
 #include "jsmn/jsmn.h"
 
-#define SIZE_OF_GET_MSG 26
-#define SIZE_OF_ERR_MSG 21
 #define RES_BUF_SIZE 1024
 
 extern int v;
@@ -81,6 +79,7 @@ int send_get_req(int qfd, host_info_struct *info) {
     // create message to be sent
     int msg_len = snprintf(NULL, 0, "GET %s HTTP/1.1\r\n"
                 "Host: %s:%s\r\n"
+                "Connection: close\r\n"
                 "\r\n",
                 info->path, info->host, info->port);
 
@@ -92,6 +91,7 @@ int send_get_req(int qfd, host_info_struct *info) {
 
     int err = sprintf(msg, "GET %s HTTP/1.1\r\n"
                 "Host: %s:%s\r\n"
+                "Connection: close\r\n"
                 "\r\n",
                 info->path, info->host, info->port);
 
@@ -142,7 +142,7 @@ char *parse_quote(char *res, char *key) {
     char *start = body_start(res);
 
     int num_toks = jsmn_num_toks(start);
-    fprintf(stderr, "numtoks:%d\n", num_toks);
+    fprintf(stderr, "|\n|numtoks:%d\n", num_toks);
     if (num_toks < 1) {
         if (v >= 1) fprintf(stderr, "jsmn counted negative tokens %d\n",
                             num_toks);
@@ -215,7 +215,7 @@ char *create_err_msg(int code) {
 }
 
 // checks the responce code and creates an error message if it was not 2XX
-int check_req_code(char *res, char **quote) {
+int check_res_code(char *res, char **quote) {
     int j, i = 0;
     // get to beginning of code
     for (; i < strlen(res); i++)
@@ -272,15 +272,18 @@ char *request_quote(host_info_struct *info) {
     int n;
     char buf[RES_BUF_SIZE];
     char *res = NULL;
+    // TODO: to quick will exi before it gets to the end of the message
     while ((n = read(qfd, buf, sizeof(buf) - 1)) > 0) {
         buf[n] = '\0';
         add_to_response(buf, &res);
-        if (n < RES_BUF_SIZE - 1)
-            break;
+        /*if (n < RES_BUF_SIZE - 1)
+            break;*/
     }
 
     if (n < 0)
         if (v >= 1) perror("read");
+
+    if (v >= 3) fprintf(stderr, "strlen(res):%ld\nres:%s", strlen(res), res);
 
     if (res == NULL) {
         if (v >= 1) fprintf(stderr, "unable to get response\n");
@@ -288,7 +291,7 @@ char *request_quote(host_info_struct *info) {
     }
 
     // check res code
-    err = check_req_code(res, &quote);
+    err = check_res_code(res, &quote);
 
     // parse quote if an error msg has not been made
     if (quote == NULL && err != -1)
