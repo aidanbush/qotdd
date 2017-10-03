@@ -44,8 +44,8 @@ host_info_struct *parse_host_info(char *path, char *key) {
 
     if (has_port) {
         str[0] = strtok(path, ":");
-        for (int i = 1; i < 3; i++)
-            str[i] = strtok(NULL, ":/");
+        str[1] = strtok(NULL, "/");
+        str[2] = strtok(NULL, "\0");
         // test if port exists
         if (str[1] != NULL)
             host_info->port = strdup(str[1]);
