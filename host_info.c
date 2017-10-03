@@ -42,36 +42,39 @@ host_info_struct *parse_host_info(char *path, char *key) {
 
     char *str[3] = {NULL, NULL, NULL};
 
-    str[0] = strtok(path, ":/");
-    for (int i = 1; i < 3; i++)
-        str[i] = strtok(NULL, ":/");
-
-    // set host
-    host_info->host = strdup(str[0]);
-
-    // check if port exists and set the port and path
     if (has_port) {
+        str[0] = strtok(path, ":");
+        for (int i = 1; i < 3; i++)
+            str[i] = strtok(NULL, ":/");
+        // test if port exists
         if (str[1] != NULL)
             host_info->port = strdup(str[1]);
         else
             host_info->port = NULL;
+        //  test if path exists
         if (str[2] != NULL){
             host_info->path = malloc(sizeof(char) * (strlen(str[2]) + 2));
             if (host_info->path != NULL)
                 sprintf(host_info->path, "/%s", str[2]);
-        }
-        else
+        } else {
             host_info->path = NULL;
+        }
     } else {
+        str[0] = strtok(path, "/");
+        str[2] = strtok(NULL, "\0");//get till end
+
         host_info->port = NULL;
-        if (str[1] != NULL) {
-            host_info->path = malloc(sizeof(char) * (strlen(str[1]) + 2));
-                if (host_info->path != NULL)
-            sprintf(host_info->path, "/%s",str[1]);
-        }
-        else
+        if (str[2] != NULL) {
+            host_info->path = malloc(sizeof(char) * (strlen(str[2]) + 2));
+            if (host_info->path != NULL)
+                sprintf(host_info->path, "/%s",str[2]);
+        } else {
             host_info->path = NULL;
+        }
     }
+
+    // set host
+    host_info->host = strdup(str[0]);
 
     // if path is null, sets to root
     if (host_info->path == NULL) {
@@ -90,6 +93,9 @@ host_info_struct *parse_host_info(char *path, char *key) {
         host_info->host == NULL ||
         host_info->port == NULL)
         return NULL;
+
+    fprintf(stderr, "host:%s\nport:%s\npath:%s\n", host_info->host,
+            host_info->port, host_info->path);
 
     return host_info;
 }
