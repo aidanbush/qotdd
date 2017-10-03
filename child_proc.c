@@ -28,6 +28,9 @@
 
 extern int v;
 
+/* creates the child socket that connects to the quote server and retuns the
+ * file descriptor
+ */
 int make_client_socket(host_info_struct *info) {
     struct addrinfo *res, hints = {
         .ai_family = AF_INET,
@@ -73,7 +76,7 @@ int make_client_socket(host_info_struct *info) {
     return cfd;
 }
 
-//get request to server
+// create and send get request to server
 int send_get_req(int qfd, host_info_struct *info) {
     // create message to be sent
     int msg_len = snprintf(NULL, 0, "GET %s HTTP/1.1\r\n"
@@ -81,7 +84,7 @@ int send_get_req(int qfd, host_info_struct *info) {
                 "\r\n",
                 info->path, info->host, info->port);
 
-    char *msg = malloc(sizeof(char) * msg_len);
+    char *msg = malloc(sizeof(char) * msg_len + 1);
     if (msg == NULL) {
         if (v >= 1) perror("malloc");
         return -1;
@@ -120,12 +123,14 @@ char *body_start(char *res) {
     return NULL;
 }
 
+// strcmp implemented to compare jsmn strings
 int json_strcmp(char *json, jsmntok_t *tok, char *key) {
     if (tok->type == JSMN_STRING && strlen(key) == tok->end - tok->start)
         return strncmp(json + tok->start, key, tok->end - tok->start);
     return -1;
 }
 
+// calls jsmn_parse to calculate the number of tokens in the json object
 int jsmn_num_toks(char *json) {
     jsmn_parser p;
     jsmn_init(&p);
@@ -135,12 +140,16 @@ int jsmn_num_toks(char *json) {
 char *parse_quote(char *res, char *key) {
     char *start = body_start(res);
 
-    int num_toks = jsmn_num_toks(res);
+    int num_toks = jsmn_num_toks(start);
+    if (num_toks < 1) {
+        if (v >= 1) fprintf(stderr, "jsmn counted negative tokens %d\n",
+                            num_toks);
+        return NULL;
+    }
 
     int c;
     jsmn_parser p;
     jsmntok_t t[num_toks];
-
     jsmn_init(&p);
 
     c = jsmn_parse(&p, start, strlen(start), t, num_toks);
@@ -156,6 +165,7 @@ char *parse_quote(char *res, char *key) {
     return NULL;
 }
 
+// adds the given string to the end of the res string
 int add_to_response(char *buf, char **res) {
     if (*res == NULL){
         *res = calloc(RES_BUF_SIZE, sizeof(char));
@@ -166,12 +176,12 @@ int add_to_response(char *buf, char **res) {
         int res_len = strlen(*res);
         int buf_len = strlen(buf);
 
-        char *temp_ptr = calloc(strlen(*res) + buf_len + 1, sizeof(char));
+        char *temp_ptr = calloc(res_len + buf_len + 1, sizeof(char));
         if (temp_ptr == NULL) return -1;
 
         strncpy(temp_ptr, *res, res_len); // copy over res
-        strncpy(&temp_ptr[res_len], buf, buf_len);// copy over buf
-        temp_ptr[res_len + buf_len] = '\0';// set null terminator
+        strncpy(temp_ptr + res_len, buf, buf_len); // copy buf after res part
+        temp_ptr[res_len + buf_len] = '\0'; // set null terminator
 
         free(*res); // free res
         *res = temp_ptr; // set res
@@ -179,6 +189,7 @@ int add_to_response(char *buf, char **res) {
     return 1;
 }
 
+// creates and returns the error message for the given http code
 char *create_err_msg(int code) {
     int msg_len = snprintf(NULL, 0, "cannot obtain quote: %d", code);
 
@@ -197,6 +208,7 @@ char *create_err_msg(int code) {
     return msg;
 }
 
+// checks the responce code and creates an error message if it was not 2XX
 int check_req_code(char *res, char **quote) {
     int j, i = 0;
     // get to beginning of code
@@ -215,6 +227,7 @@ int check_req_code(char *res, char **quote) {
         code_copy[k - i] = res[k];
         if (isdigit(res[k]) == 0) return -1;
     }
+    // TODO: deal with nothing added
     code_copy[3] = '\0';
 
     // convert
@@ -262,8 +275,6 @@ char *request_quote(host_info_struct *info) {
 
     if (n < 0)
         if (v >= 1) perror("read");
-
-    if (v >= 3) fprintf(stdout, "res: %s\n", res);
 
     if (res == NULL) {
         if (v >= 1) fprintf(stderr, "unable to get response\n");
