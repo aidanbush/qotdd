@@ -134,6 +134,7 @@ int json_strcmp(char *json, jsmntok_t *tok, char *key) {
 int jsmn_num_toks(char *json) {
     jsmn_parser p;
     jsmn_init(&p);
+    // currently returning -3 for string to short expected more
     return jsmn_parse(&p, json, strlen(json), NULL, 0);
 }
 
@@ -141,6 +142,7 @@ char *parse_quote(char *res, char *key) {
     char *start = body_start(res);
 
     int num_toks = jsmn_num_toks(start);
+    fprintf(stderr, "numtoks:%d\n", num_toks);
     if (num_toks < 1) {
         if (v >= 1) fprintf(stderr, "jsmn counted negative tokens %d\n",
                             num_toks);
@@ -152,6 +154,8 @@ char *parse_quote(char *res, char *key) {
     jsmntok_t t[num_toks];
     jsmn_init(&p);
 
+    fprintf(stderr, "jsmn_parse\n");
+
     c = jsmn_parse(&p, start, strlen(start), t, num_toks);
 
     if (c < 0)
@@ -159,9 +163,11 @@ char *parse_quote(char *res, char *key) {
 
     for (int i = 1; i < c; i++) {
         if (json_strcmp(start, &t[i], key) == 0) {
+            fprintf(stderr, "match\n");
             return strndup(start + t[i+1].start, t[i+1].end - t[i+1].start);
         }
     }
+    fprintf(stderr, "no match\n");
     return NULL;
 }
 
