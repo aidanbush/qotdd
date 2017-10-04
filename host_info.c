@@ -94,9 +94,6 @@ host_info_struct *parse_host_info(char *path, char *key) {
         host_info->port == NULL)
         return NULL;
 
-    fprintf(stderr, "host:%s\nport:%s\npath:%s\n", host_info->host,
-            host_info->port, host_info->path);
-
     return host_info;
 }
 

@@ -32,7 +32,7 @@
 #define EXIT_SOCK_SETUP_FAIL 6
 #define EXIT_OTHER_FAIL 7
 
-#define PORT "1042"
+#define PORT "1700"
 #define BACKLOG 5 // change to variable
 
 int v = 0;
@@ -59,7 +59,6 @@ int create_sigint_handler() {
 
 //the SIGCHLD handler
 void sigchld_handler(int par) {
-    fprintf(stderr, "sigchld called\n");
     waitpid(-1, NULL, WNOHANG);
 }
 
@@ -86,7 +85,7 @@ void print_usage(char *p_name) {
            "    -h  Displays this help message and exit\n"
            "    -v  Verbose [use more than once more for move verbose]\n"
            "        v give basic debugging including errors\n"
-           "        vv adds logging of incoming and outgoing messages\n"
+           "        vv adds logging of  messages and important events\n"
            "        vvv adds logging of all traffic\n\n"
            "required options:\n"
            "  host  The destination of the server to forward from\n"
@@ -197,7 +196,7 @@ int server_proc(host_info_struct *info) {
                 if (v >= 1) perror("accept");
             continue;
         }
-        if (v >= 3) fprintf(stdout, "opened connection cfd:%d\n", cfd);
+        if (v >= 2) fprintf(stdout, "opened connection cfd: %d\n", cfd);
         //fork
         int pid = fork();
         //if child call child proc
@@ -206,7 +205,7 @@ int server_proc(host_info_struct *info) {
         }
 
         close(cfd);
-        if (v >= 3) fprintf(stdout, "parent closed connection cfd:%d\n", cfd);
+        if (v >= 2) fprintf(stdout, "parent closed connection cfd: %d\n", cfd);
     }
 
     close(sfd);

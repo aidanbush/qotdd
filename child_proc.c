@@ -26,7 +26,7 @@
 
 extern int v;
 
-/* creates the child socket that connects to the quote server and retuns the
+/* creates the child socket that connects to the quote server and returns the
  * file descriptor
  */
 int make_client_socket(host_info_struct *info) {
@@ -67,7 +67,7 @@ int make_client_socket(host_info_struct *info) {
     freeaddrinfo(res);
 
     if (cur == NULL) {
-        fprintf(stdout, "cur == NULL\n");
+        if (v >= 1) fprintf(stderr, "failed to connect to server\n");
         return -1;
     }
 
@@ -102,8 +102,9 @@ int send_get_req(int qfd, host_info_struct *info) {
         return -1;
     }
 
-    if (v >= 3) fprintf(stdout, "send msg: %s\n", msg);
+    if (v >= 3) fprintf(stdout, "\nsend GET message: %s\n", msg);
 
+    if (v >= 2) fprintf(stdout, "sending request message\n");
     int wrttn = send(qfd, msg, strlen(msg), 0);
     if (wrttn == -1) {
         if (v >= 3) fprintf(stderr, "client send error\n");
@@ -114,6 +115,7 @@ int send_get_req(int qfd, host_info_struct *info) {
     return 1;
 }
 
+// finds the start of the response message
 char *body_start(char *res) {
     for (int i = 0; i < strlen(res); i++) {
         if (res[i] == '\r')
@@ -138,11 +140,11 @@ int jsmn_num_toks(char *json) {
     return jsmn_parse(&p, json, strlen(json), NULL, 0);
 }
 
+// parses the quote out the quote from the message body
 char *parse_quote(char *res, char *key) {
     char *start = body_start(res);
 
     int num_toks = jsmn_num_toks(start);
-    fprintf(stderr, "|\n|numtoks:%d\n", num_toks);
     if (num_toks < 1) {
         if (v >= 1) fprintf(stderr, "jsmn counted negative tokens %d\n",
                             num_toks);
@@ -154,8 +156,6 @@ char *parse_quote(char *res, char *key) {
     jsmntok_t t[num_toks];
     jsmn_init(&p);
 
-    fprintf(stderr, "jsmn_parse\n");
-
     c = jsmn_parse(&p, start, strlen(start), t, num_toks);
 
     if (c < 0)
@@ -163,11 +163,10 @@ char *parse_quote(char *res, char *key) {
 
     for (int i = 1; i < c; i++) {
         if (json_strcmp(start, &t[i], key) == 0) {
-            fprintf(stderr, "match\n");
             return strndup(start + t[i+1].start, t[i+1].end - t[i+1].start);
         }
     }
-    fprintf(stderr, "no match\n");
+    if (v >= 1) fprintf(stderr, "jsmn could not match keyword\n");
     return NULL;
 }
 
@@ -197,6 +196,8 @@ int add_to_response(char *buf, char **res) {
 
 // creates and returns the error message for the given http code
 char *create_err_msg(int code) {
+    if (v >= 1) fprintf(stderr, "error response code: %d\n", code);
+
     int msg_len = snprintf(NULL, 0, "cannot obtain quote: %d", code);
 
     char *msg = malloc(sizeof(char) * msg_len);
@@ -214,7 +215,7 @@ char *create_err_msg(int code) {
     return msg;
 }
 
-// checks the responce code and creates an error message if it was not 2XX
+// checks the response code and creates an error message if it was not 2XX
 int check_res_code(char *res, char **quote) {
     int j, i = 0;
     // get to beginning of code
@@ -243,6 +244,7 @@ int check_res_code(char *res, char **quote) {
     if (code >= 200 && code < 300)
         return 1;
 
+    // else was not successful
     *quote = create_err_msg(code);
     if (quote == NULL)
         return -1;
@@ -272,18 +274,17 @@ char *request_quote(host_info_struct *info) {
     int n;
     char buf[RES_BUF_SIZE];
     char *res = NULL;
-    // TODO: to quick will exi before it gets to the end of the message
+    // will get stuck if the server does not close connection
     while ((n = read(qfd, buf, sizeof(buf) - 1)) > 0) {
         buf[n] = '\0';
         add_to_response(buf, &res);
-        /*if (n < RES_BUF_SIZE - 1)
-            break;*/
     }
 
     if (n < 0)
         if (v >= 1) perror("read");
 
-    if (v >= 3) fprintf(stderr, "strlen(res):%ld\nres:%s", strlen(res), res);
+    if (v >= 3) fprintf(stdout, "\nresponse message len:%ld\n%s",
+                                strlen(res), res);
 
     if (res == NULL) {
         if (v >= 1) fprintf(stderr, "unable to get response\n");
@@ -305,7 +306,9 @@ char *request_quote(host_info_struct *info) {
     return quote;
 }
 
+// writes the quote message
 void write_quote(char *quote, int cfd) {
+    if (v >= 2) fprintf(stdout, "sending quote message\n");
     int wrttn = send(cfd, quote, strlen(quote), 0);
 
     if (wrttn != strlen(quote))
@@ -326,13 +329,13 @@ void child_proc(int cfd, host_info_struct *info) {
         exit(1);
     }
 
-    // forward
+    // forward quote
     write_quote(quote, cfd);
 
     free(quote);
 
     close(cfd);
-    if (v >= 3) fprintf(stdout, "child closed connection cfd:%d\n", cfd);
+    if (v >= 2) fprintf(stdout, "child closed connection cfd: %d\n", cfd);
 
     exit(0); // kill
 }
