@@ -284,8 +284,7 @@ char *request_quote(host_info *info) {
     if (n < 0)
         if (v >= 1) perror("read");
 
-    if (v >= 3) fprintf(stdout, "\nresponse message len:%ld\n%s",
-                                strlen(res), res);
+    if (v >= 3) fprintf(stdout, "\nresponse message:%s", res);
 
     if (res == NULL) {
         if (v >= 1) fprintf(stderr, "unable to get response\n");

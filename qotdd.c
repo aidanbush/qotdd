@@ -86,7 +86,7 @@ void print_usage(char *p_name) {
            "Options:\n"
            "    -h  Displays this help message and exit\n"
            "    -v  Verbose [use more than once more for move verbose]\n"
-           "        v give basic debugging including errors\n"
+           "        v give basic debugging of errors\n"
            "        vv adds logging of  messages and important events\n"
            "        vvv adds logging of all traffic\n\n"
            "required options:\n"
@@ -193,7 +193,7 @@ int server_proc(host_info *info) {
         int cfd = accept(sfd, (struct sockaddr*) &client_addr,
             &client_addr_len);
         if (cfd == -1) {
-            // if the error was not caused by an interupt
+            // if the error was not caused by an interrupt
             if (errno != EINTR)
                 if (v >= 1) perror("accept");
             continue;
