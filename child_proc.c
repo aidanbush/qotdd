@@ -40,7 +40,7 @@ int make_client_socket(host_info *info) {
     int err = getaddrinfo(info->host, info->port, &hints, &res);
     if (err != 0) {
         if (v >= 1) fprintf(stderr, "%s\n", gai_strerror(err));
-        exit(1);
+        return -1;
     }
 
     // create socket
@@ -201,7 +201,7 @@ char *create_err_msg(int code) {
 
     int msg_len = snprintf(NULL, 0, "cannot obtain quote: %d", code);
 
-    char *msg = malloc(sizeof(char) * msg_len);
+    char *msg = malloc(sizeof(char) * msg_len + 1);
     if (msg == NULL) {
         if (v >= 1) perror("malloc");
         return NULL;
