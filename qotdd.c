@@ -149,12 +149,13 @@ int make_server_socket(host_info *info) {
             close(sfd);
             continue;
         }
+        break;
     }
 
     // free addinfo
     freeaddrinfo(res);
 
-    if (cur != NULL) {
+    if (cur == NULL) {
         if (v >= 1) fprintf(stderr, "failed to connect\n");
         close(sfd);
         return -1;
