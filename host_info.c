@@ -3,8 +3,8 @@
  * Course: CMPT 361
  * Date: Sept. 24, 17
  * File: host_info.c
- * Description: file used to break apart, and store the host, port, path, and
- *  key, given.
+ * Description: The file used to break apart, and store the host, port, path,
+ *  and JSON key, given.
  */
 
 /* standard libraries */

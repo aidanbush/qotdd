@@ -3,7 +3,7 @@
  * Course: CMPT 361
  * Date: Sept. 19, 17
  * File: qotdd.c
- * Description: the main project file
+ * Description: The main project file
  */
 
 /* standard libraries */
@@ -25,18 +25,20 @@
 #include "child_proc.h"
 #include "host_info.h"
 
-#define EXIT_INVALID_OPT 2
-#define EXIT_SOCKET_FAIL 3
-#define EXIT_SIGINT_FAIL 4
-#define EXIT_SIGCHLD_FAIL 5
-#define EXIT_SOCK_SETUP_FAIL 6
-#define EXIT_OTHER_FAIL 7
+// exit fail defines
+#define EXIT_INVALID_OPT 1
+#define EXIT_SIGINT_FAIL 2
+#define EXIT_SIGCHLD_FAIL 4
+#define EXIT_SOCK_SETUP_FAIL 8
+#define EXIT_OTHER_FAIL 16
 
 #define PORT "1700"
-#define BACKLOG 5 // change to variable
+#define BACKLOG 5
 
+// the verbosity flag
 int v = 0;
-bool exit_server = false;
+// the exit server flag
+static bool exit_server = false;
 
 // the function called for the sigint handler stops the main server loop
 void sigint_handler(int par) {
@@ -57,7 +59,7 @@ int create_sigint_handler() {
     return 0;
 }
 
-//the SIGCHLD handler
+// the SIGCHLD handler
 void sigchld_handler(int par) {
     waitpid(-1, NULL, WNOHANG);
 }
@@ -197,9 +199,9 @@ int server_proc(host_info *info) {
             continue;
         }
         if (v >= 2) fprintf(stdout, "opened connection cfd: %d\n", cfd);
-        //fork
+
         int pid = fork();
-        //if child call child proc
+        // if child
         if (pid == 0) {
             child_proc(cfd, info);
         }

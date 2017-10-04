@@ -3,7 +3,8 @@
  * Course: CMPT 361
  * Date: Sept. 19, 17
  * File: child_proc.c
- * Description: This file handles the child process
+ * Description: This file handles the child process, both requesting they quote,
+ *  parsing the output and responding to the original request.
  */
 
 /* standard libraries */
