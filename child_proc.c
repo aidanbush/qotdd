@@ -29,7 +29,7 @@ extern int v;
 /* creates the child socket that connects to the quote server and returns the
  * file descriptor
  */
-int make_client_socket(host_info_struct *info) {
+int make_client_socket(host_info *info) {
     struct addrinfo *res, hints = {
         .ai_family = AF_INET,
         .ai_socktype = SOCK_STREAM,
@@ -75,7 +75,7 @@ int make_client_socket(host_info_struct *info) {
 }
 
 // create and send get request to server
-int send_get_req(int qfd, host_info_struct *info) {
+int send_get_req(int qfd, host_info *info) {
     // create message to be sent
     int msg_len = snprintf(NULL, 0, "GET %s HTTP/1.1\r\n"
                 "Host: %s:%s\r\n"
@@ -252,7 +252,7 @@ int check_res_code(char *res, char **quote) {
 }
 
 // requests a quote from the server provided earlier
-char *request_quote(host_info_struct *info) {
+char *request_quote(host_info *info) {
     char *quote = NULL;
 
     // make client socket
@@ -316,7 +316,7 @@ void write_quote(char *quote, int cfd) {
 }
 
 // main child process makes requests and responds to the connecting client
-void child_proc(int cfd, host_info_struct *info) {
+void child_proc(int cfd, host_info *info) {
     char *quote;
 
     // make request to server and parse the quote

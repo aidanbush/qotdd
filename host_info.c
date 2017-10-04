@@ -12,8 +12,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-/* system libraries */
-
 /* project includes */
 #include "host_info.h"
 
@@ -21,6 +19,7 @@
 
 extern int v;
 
+// checks if a port is specified in the argument
 int check_port(char *path) {
     for (int i = 0; i < strlen(path); i++)
         if (path[i] == ':')
@@ -30,10 +29,10 @@ int check_port(char *path) {
 }
 
 // parses and returns a host_info struct pointer
-host_info_struct *parse_host_info(char *path, char *key) {
-    host_info_struct *host_info = malloc(sizeof(host_info_struct));
+host_info *parse_host_info(char *path, char *key) {
+    host_info *info = malloc(sizeof(host_info));
 
-    if (host_info == NULL) {
+    if (info == NULL) {
         if (v >= 1) perror("host info malloc");
         return NULL;
     }
@@ -43,63 +42,67 @@ host_info_struct *parse_host_info(char *path, char *key) {
     char *str[3] = {NULL, NULL, NULL};
 
     if (has_port) {
+        // grabs host, port, and path
         str[0] = strtok(path, ":");
         str[1] = strtok(NULL, "/");
         str[2] = strtok(NULL, "\0");
-        // test if port exists
+        // copies over port if it exists
         if (str[1] != NULL)
-            host_info->port = strdup(str[1]);
+            info->port = strdup(str[1]);
         else
-            host_info->port = NULL;
-        //  test if path exists
+            info->port = NULL;
+        // copies over path if it exists
         if (str[2] != NULL){
-            host_info->path = malloc(sizeof(char) * (strlen(str[2]) + 2));
-            if (host_info->path != NULL)
-                sprintf(host_info->path, "/%s", str[2]);
+            info->path = malloc(sizeof(char) * (strlen(str[2]) + 2));
+            if (info->path != NULL)
+                sprintf(info->path, "/%s", str[2]);
         } else {
-            host_info->path = NULL;
+            info->path = NULL;
         }
     } else {
+        //grabs host and path
         str[0] = strtok(path, "/");
-        str[2] = strtok(NULL, "\0");//get till end
+        str[2] = strtok(NULL, "\0");
 
-        host_info->port = NULL;
+        info->port = NULL;
+        // copies over path if it exists
         if (str[2] != NULL) {
-            host_info->path = malloc(sizeof(char) * (strlen(str[2]) + 2));
-            if (host_info->path != NULL)
-                sprintf(host_info->path, "/%s",str[2]);
+            info->path = malloc(sizeof(char) * (strlen(str[2]) + 2));
+            if (info->path != NULL)
+                sprintf(info->path, "/%s",str[2]);
         } else {
-            host_info->path = NULL;
+            info->path = NULL;
         }
     }
 
     // set host
-    host_info->host = strdup(str[0]);
+    info->host = strdup(str[0]);
 
     // if path is null, sets to root
-    if (host_info->path == NULL) {
-        host_info->path = strdup("/");
+    if (info->path == NULL) {
+        info->path = strdup("/");
     }
 
-    // if if port in NULL set to the default option
-    if (host_info->port == NULL)
-        host_info->port = strdup(DEFAULT_PORT);
+    // if the port is NULL set to the default option
+    if (info->port == NULL)
+        info->port = strdup(DEFAULT_PORT);
 
     // set key
-    host_info->key = key;
+    info->key = key;
 
     // if any of the strdup calls failed
-    if (host_info->path == NULL ||
-        host_info->host == NULL ||
-        host_info->port == NULL)
+    if (info->path == NULL ||
+        info->host == NULL ||
+        info->port == NULL)
         return NULL;
 
-    return host_info;
+    return info;
 }
 
-void clean_host_info(host_info_struct *host_info) {
-    free(host_info->host);
-    free(host_info->port);
-    free(host_info->path);
-    free(host_info);
+// frees the host info object and all its elements
+void clean_host_info(host_info *info) {
+    free(info->host);
+    free(info->port);
+    free(info->path);
+    free(info);
 }

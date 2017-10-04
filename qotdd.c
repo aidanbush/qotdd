@@ -96,7 +96,7 @@ void print_usage(char *p_name) {
 }
 
 // creates the server socket and returns its file descriptor on error returns -1
-int make_server_socket(host_info_struct *info) {
+int make_server_socket(host_info *info) {
     // TODO: test that works with ipv4 and ipv6
     struct addrinfo *res, hints = {
         .ai_family = AF_INET6,
@@ -161,7 +161,7 @@ int make_server_socket(host_info_struct *info) {
 }
 
 // the main server setup and loop function
-int server_proc(host_info_struct *info) {
+int server_proc(host_info *info) {
     int sfd, err;
 
     sfd = make_server_socket(info);
@@ -242,7 +242,7 @@ int main(int argc, char **argv) {
         exit(EXIT_INVALID_OPT);
     }
 
-    host_info_struct * info = parse_host_info(path, key);
+    host_info * info = parse_host_info(path, key);
 
     if (info == NULL) {
         print_usage(argv[0]);

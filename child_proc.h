@@ -16,6 +16,6 @@
  * The function takes the given connection and responds with the quote of the
  *  day
 */
-void child_proc(int, host_info_struct *);
+void child_proc(int, host_info *);
 
 #endif /* CHILD_PROC_H */

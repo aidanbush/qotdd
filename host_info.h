@@ -9,15 +9,15 @@
 #ifndef HOST_INFO_H
 #define HOST_INFO_H
 
-typedef struct host_info_struct {
+typedef struct host_info {
     char *host;
     char *port;
     char *path;
     char *key;
-} host_info_struct;
+} host_info;
 
-host_info_struct *parse_host_info(char *, char *);
+host_info *parse_host_info(char *, char *);
 
-void clean_host_info(host_info_struct *);
+void clean_host_info(host_info *);
 
 #endif /* HOST_INFO_H */
