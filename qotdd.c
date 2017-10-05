@@ -99,7 +99,6 @@ void print_usage(char *p_name) {
 
 // creates the server socket and returns its file descriptor on error returns -1
 int make_server_socket(host_info *info) {
-    // TODO: test that works with ipv4 and ipv6
     struct addrinfo *res, hints = {
         .ai_family = AF_INET6,
         .ai_socktype = SOCK_STREAM,

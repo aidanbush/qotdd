@@ -235,7 +235,6 @@ int check_res_code(char *res, char **quote) {
         code_copy[k - i] = res[k];
         if (isdigit(res[k]) == 0) return -1;
     }
-    // TODO: deal with nothing added
     code_copy[3] = '\0';
 
     // convert
