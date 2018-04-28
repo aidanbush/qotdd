@@ -32,7 +32,7 @@ extern int v;
  */
 int make_client_socket(host_info *info) {
     struct addrinfo *res, hints = {
-        .ai_family = AF_INET,
+        .ai_family = AF_INET6,
         .ai_socktype = SOCK_STREAM,
         .ai_flags = AI_V4MAPPED
     };
